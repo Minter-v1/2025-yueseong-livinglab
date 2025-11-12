@@ -1,0 +1,107 @@
+"""
+Excel 처리 서비스
+"""
+
+import pandas as pd
+import os
+
+
+class ExcelService:
+    """Excel 파일 읽기/쓰기"""
+    
+    @staticmethod
+    def read_residents(file_path, column_name='주민등록번호'):
+        """
+        Excel 파일에서 주민등록번호 목록 읽기
+        
+        Args:
+            file_path: Excel 파일 경로
+            column_name: 주민등록번호 컬럼 이름
+            
+        Returns:
+            list: [
+                {'순번': 1, '주민등록번호': '900101-1234567', '이름': '홍길동'},
+                ...
+            ]
+        """
+        # 파일 확장자에 따라 읽기
+        if file_path.endswith('.csv'):
+            df = pd.read_csv(file_path, encoding='utf-8')
+        else:
+            df = pd.read_excel(file_path)
+        
+        # 주민등록번호 컬럼 확인
+        if column_name not in df.columns:
+            raise ValueError(f"Column '{column_name}' not found in file")
+        
+        # 딕셔너리 리스트로 변환
+        records = df.to_dict('records')
+        
+        return records
+    
+    @staticmethod
+    def write_results(file_path, results):
+        """
+        결과를 Excel 파일에 쓰기
+        
+        Args:
+            file_path: 출력 파일 경로
+            results: 결과 리스트 [
+                {'순번': 1, '주민등록번호': '...', '세대원수': 4, '상태': '완료'},
+                ...
+            ]
+        """
+        df = pd.DataFrame(results)
+        
+        # 파일 확장자에 따라 저장
+        if file_path.endswith('.csv'):
+            df.to_csv(file_path, index=False, encoding='utf-8-sig')
+        else:
+            df.to_excel(file_path, index=False)
+        
+        print(f" Results saved to: {file_path}")
+    
+    @staticmethod
+    def append_column(file_path, column_name, values, output_path=None):
+        """
+        기존 Excel 파일에 컬럼 추가
+        
+        Args:
+            file_path: 입력 파일 경로
+            column_name: 추가할 컬럼 이름
+            values: 컬럼 값 리스트
+            output_path: 출력 파일 경로 (None이면 원본 덮어쓰기)
+        """
+        # 파일 읽기
+        if file_path.endswith('.csv'):
+            df = pd.read_csv(file_path, encoding='utf-8')
+        else:
+            df = pd.read_excel(file_path)
+        
+        # 컬럼 추가
+        df[column_name] = values
+        
+        # 저장
+        if output_path is None:
+            output_path = file_path
+        
+        if output_path.endswith('.csv'):
+            df.to_csv(output_path, index=False, encoding='utf-8-sig')
+        else:
+            df.to_excel(output_path, index=False)
+        
+        print(f" Column '{column_name}' added to: {output_path}")
+
+
+if __name__ == "__main__":
+    # 테스트
+    service = ExcelService()
+    
+    # 테스트 데이터 읽기
+    test_file = "data/test_input.csv"
+    if os.path.exists(test_file):
+        records = service.read_residents(test_file)
+        print(f"Read {len(records)} records from {test_file}")
+        for record in records[:3]:
+            print(f"  - {record}")
+
