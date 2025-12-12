@@ -160,7 +160,7 @@ def detect_and_visualize(image_path, template_dir='data/templates/templates_real
 
 if __name__ == '__main__':
     # 기본 이미지 경로
-    default_image = Path("data/img_org.jpeg")
+    default_image = Path("data/templates/img_org.jpeg")
     
 
     # 명령행 인자로 이미지 경로 받기
@@ -173,7 +173,6 @@ if __name__ == '__main__':
     if not os.path.exists(image_path):
         print(f'❌ 파일을 찾을 수 없습니다: {image_path}')
         print(f'\n사용법: python test_detect_coordinates.py [이미지경로]')
-        print(f'예시: python test_detect_coordinates.py C:/Users/jtj72/Desktop/test.jpg')
         sys.exit(1)
 
     # 검출 실행
