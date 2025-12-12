@@ -161,7 +161,6 @@ def detect_and_visualize(image_path, template_dir='data/templates/templates_real
 if __name__ == '__main__':
     # 기본 이미지 경로
     default_image = Path("data/templates/img_org.jpeg")
-    
 
     # 명령행 인자로 이미지 경로 받기
     if len(sys.argv) > 1:
