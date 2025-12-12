@@ -197,6 +197,11 @@ class ImageMatcher:
                 if scale == 1.0:
                     resized_template = template_current
                     resized_mask = template_mask
+                    if resized_mask is not None:
+                        if resized_mask.dtype != np.uint8:
+                            resized_mask = resized_mask.astype(np.uint8, copy=False)
+                        if np.count_nonzero(resized_mask) < 5:
+                            resized_mask = None
                 else:
                     resized_size = (int(template_current.shape[1] * scale), int(template_current.shape[0] * scale))
                     if resized_size[0] < 5 or resized_size[1] < 5:
@@ -214,6 +219,10 @@ class ImageMatcher:
                             resized_size,
                             interpolation=cv2.INTER_NEAREST
                         )
+                        if resized_mask.dtype != np.uint8:
+                            resized_mask = resized_mask.astype(np.uint8, copy=False)
+                        if np.count_nonzero(resized_mask) < 5:
+                            resized_mask = None
 
                 if (
                     resized_template.shape[0] > screenshot_current.shape[0]
@@ -248,6 +257,25 @@ class ImageMatcher:
                     else:
                         top_left = max_loc
                         confidence = max_val
+
+                    if not np.isfinite(confidence):
+                        print("     ⚠ 비정상적인 신뢰도(inf/nan) 결과 - 마스크를 제거하고 재시도합니다.")
+                        if mask_arg is not None:
+                            # 마스크를 제거하고 한 번만 다시 시도
+                            result = cv2.matchTemplate(
+                                screenshot_current,
+                                resized_template,
+                                method_candidate
+                            )
+                            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+                            if method_candidate in (cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED):
+                                top_left = min_loc
+                                confidence = 1 - min_val
+                            else:
+                                top_left = max_loc
+                                confidence = max_val
+                        if not np.isfinite(confidence):
+                            continue
 
                     print(
                         f"     method={method_candidate} mode={mode:<5} "
