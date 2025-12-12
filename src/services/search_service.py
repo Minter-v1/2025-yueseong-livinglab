@@ -92,14 +92,17 @@ class SearchAutomationService:
             
             self.automation.click(
                 input_field['center_x'],
-                input_field['center_y'],
-                clicks=3  # 트리플 클릭으로 전체 선택
+                input_field['center_y']
             )
-            time.sleep(0.5)
+            time.sleep(0.1)
+
+            pyautogui.hotkey('ctrl','a')
+            pyautogui.press('delete')
+            time.sleep(0.1)
 
             # 주민등록번호 입력 (타이핑 방식)
             pyautogui.write(resident_number, interval=0.01)
-            time.sleep(0.5)
+            time.sleep(0.1)
 
             # 검색 버튼 찾기
             search_button = self.find_ui_element('search_button')
@@ -110,7 +113,7 @@ class SearchAutomationService:
                 search_button['center_y']
             )
             
-            time.sleep(2)
+            time.sleep(0.1)
 
             # 결과 영역 캡처
             result_screenshot = self.capture.capture_full_screen()
@@ -233,7 +236,7 @@ class SearchAutomationService:
             
             # 다음 검색 전 대기
             if i < total:
-                time.sleep(1)
+                time.sleep(0.2)
         
         return results
     
