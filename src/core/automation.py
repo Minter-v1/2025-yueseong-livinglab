@@ -19,6 +19,52 @@ class GUIAutomation:
         
         pyautogui.PAUSE = 0.1  # 각 동작 후 0.1초 대기
         pyautogui.FAILSAFE = True  # 마우스를 화면 모서리로 이동 시 중단
+        
+        # macOS 접근성 권한 확인
+        import platform
+        if platform.system() == 'Darwin':  # macOS
+            self._check_macos_permissions()
+    
+    def _check_macos_permissions(self):
+        """macOS 접근성 권한 확인 및 안내"""
+        try:
+            # 간단한 테스트로 권한 확인
+            import subprocess
+            script = '''
+            tell application "System Events"
+                try
+                    keystroke "a"
+                    return "OK"
+                on error
+                    return "NO_PERMISSION"
+                end try
+            end tell
+            '''
+            result = subprocess.run(
+                ['osascript', '-e', script],
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+            
+            if "NO_PERMISSION" in result.stdout or result.returncode != 0:
+                print("\n" + "=" * 60)
+                print("⚠️  macOS 접근성 권한이 필요합니다!")
+                print("=" * 60)
+                print("키보드 자동 입력을 사용하려면 다음 권한이 필요합니다:")
+                print()
+                print("1. 시스템 설정 > 개인 정보 보호 및 보안 > 접근성")
+                print("2. 다음 앱 중 하나에 체크 표시:")
+                print("   - 터미널 (Terminal)")
+                print("   - Python")
+                print("   - Cursor (또는 사용 중인 IDE)")
+                print()
+                print("3. 권한 변경 후 앱을 재시작하세요")
+                print("=" * 60)
+                print()
+        except Exception:
+            # 권한 확인 실패해도 계속 진행
+            pass
     
     def click(self, x, y, clicks=1, button='left', delay=None):
         """

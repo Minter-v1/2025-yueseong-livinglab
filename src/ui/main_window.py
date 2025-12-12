@@ -92,13 +92,23 @@ class MainWindow:
             bg="#f5f5f5"
         ).grid(row=1, column=0, sticky=tk.W, pady=5)
         
-        tk.Entry(
+        output_entry = tk.Entry(
             file_frame,
             textvariable=self.output_file_path,
             font=("맑은 고딕", 10),
-            width=50,
-            state='readonly'
-        ).grid(row=1, column=1, padx=10, pady=5)
+            width=50
+        )
+        output_entry.grid(row=1, column=1, padx=10, pady=5)
+        
+        # 도움말 
+        help_label = tk.Label(
+            file_frame,
+            text="※ 직접 입력하거나 '찾아보기'로 선택하세요",
+            font=("맑은 고딕", 8),
+            bg="#f5f5f5",
+            fg="#7f8c8d"
+        )
+        help_label.grid(row=2, column=1, sticky=tk.W, padx=10, pady=(0, 5))
         
         tk.Button(
             file_frame,
@@ -210,16 +220,34 @@ class MainWindow:
             self.input_file_path.set(file_path)
             self.log(f"입력 파일 선택: {file_path}")
             
-            # 출력 파일 자동 설정
+            # 출력 파일 자동 설정 (사용자가 지정하지 않은 경우)
             if not self.output_file_path.get():
                 base, ext = os.path.splitext(file_path)
-                output_path = f"{base}_결과{ext}"
+                output_path = f"{base}_output.xlsx"  # 항상 .xlsx로 저장
                 self.output_file_path.set(output_path)
+                self.log(f"출력 파일 자동 설정: {output_path}")
     
     def browse_output_file(self):
-        """출력 파일 선택"""
+        """출력 파일 선택 (저장 위치 및 파일명 지정)"""
+        # 현재 입력된 경로가 있으면 기본값으로 사용
+        current_path = self.output_file_path.get()
+        if current_path and os.path.dirname(current_path):
+            initial_dir = os.path.dirname(current_path)
+            initial_file = os.path.basename(current_path)
+        else:
+            # 입력 파일이 있으면 같은 디렉토리 사용
+            if self.input_file_path.get():
+                initial_dir = os.path.dirname(self.input_file_path.get())
+                base_name = os.path.splitext(os.path.basename(self.input_file_path.get()))[0]
+                initial_file = f"{base_name}_결과.xlsx"
+            else:
+                initial_dir = os.path.expanduser("~")
+                initial_file = "결과.xlsx"
+        
         file_path = filedialog.asksaveasfilename(
-            title="출력 파일 선택",
+            title="결과 파일 저장 위치 및 이름 지정",
+            initialdir=initial_dir,
+            initialfile=initial_file,
             defaultextension=".xlsx",
             filetypes=[
                 ("Excel files", "*.xlsx"),
@@ -259,9 +287,35 @@ class MainWindow:
             messagebox.showwarning("경고", "입력 파일을 선택하세요.")
             return
         
-        if not self.output_file_path.get():
-            messagebox.showwarning("경고", "출력 파일을 선택하세요.")
+        # 출력 파일 확인 및 검증
+        output_path = self.output_file_path.get().strip()
+        if not output_path:
+            messagebox.showwarning("경고", "출력 파일 경로를 입력하거나 선택하세요.")
             return
+        
+        # 경로 검증
+        output_dir = os.path.dirname(output_path)
+        if output_dir and not os.path.exists(output_dir):
+            try:
+                os.makedirs(output_dir, exist_ok=True)
+                self.log(f"출력 디렉토리 생성: {output_dir}")
+            except Exception as e:
+                messagebox.showerror("오류", f"출력 디렉토리를 생성할 수 없습니다:\n{str(e)}")
+                return
+        
+        # 파일명이 없으면 기본값 설정
+        if not os.path.basename(output_path):
+            if self.input_file_path.get():
+                base_name = os.path.splitext(os.path.basename(self.input_file_path.get()))[0]
+                output_path = os.path.join(output_dir if output_dir else ".", f"{base_name}_결과.xlsx")
+            else:
+                output_path = os.path.join(output_dir if output_dir else ".", "결과.xlsx")
+            self.output_file_path.set(output_path)
+        
+        # 확장자가 없으면 .xlsx 추가
+        if not os.path.splitext(output_path)[1]:
+            output_path = output_path + '.xlsx'
+            self.output_file_path.set(output_path)
         
         # 확인 메시지
         if not messagebox.askyesno(
@@ -344,11 +398,16 @@ class MainWindow:
                 # 검색 실행 (이미지 매칭 사용)
                 result = search_service.search_resident(resident_number)
 
-                # 결과 기록
-                record['세대원수'] = result['household_count']
-                record['상태'] = '완료' if result['status'] == 'success' else '오류'
-                record['메시지'] = result['message']
-                results.append(record)
+                # 결과 기록 (정확한 컬럼 형식: 순번, 주민등록번호, 이름, 세대원 수, 상태, 메시지)
+                output_record = {
+                    '순번': record.get('순번', i),
+                    '주민등록번호': resident_number,
+                    '이름': name,
+                    '세대원 수': result['household_count'],
+                    '상태': '완료' if result['status'] == 'success' else '오류',
+                    '메시지': result['message']
+                }
+                results.append(output_record)
 
                 # 진행 상황 업데이트
                 self.update_progress(i, total)
@@ -407,4 +466,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

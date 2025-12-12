@@ -7,24 +7,51 @@ MARK:
 import time
 import pyautogui
 import os
+import platform
 from ..core.automation import GUIAutomation
 from ..core.screen_capture import ScreenCapture
 from ..core.image_matcher import ImageMatcher
 
 
+def get_template_dir():
+    """
+    OS를 자동으로 탐지하여 적절한 템플릿 디렉토리 경로 반환
+    
+    Returns:
+        str: OS에 맞는 템플릿 디렉토리 경로
+    """
+    system = platform.system()
+    
+    if system == "Windows":
+        return "data/templates/templates_window"
+    elif system == "Darwin":  # macOS
+        return "data/templates/templates_mac"
+    else:
+        # Linux나 기타 OS의 경우 기본값 사용
+        print(f"경고: 알 수 없는 OS ({system}), 기본 템플릿 디렉토리를 사용합니다.")
+        return "data/templates/templates_window"
+
+
 class SearchAutomationService:
     """검색 자동화 서비스"""
     
-    def __init__(self, template_dir="data/templates", target_window=None):
+    def __init__(self, template_dir=None, target_window=None):
         """
         Args:
-            template_dir: UI 템플릿 이미지 디렉토리
+            template_dir: UI 템플릿 이미지 디렉토리 (None이면 OS 자동 탐지)
             target_window: 타겟 윈도우 이름 (None이면 전체 화면)
         """
+        # template_dir이 지정되지 않으면 OS에 따라 자동 설정
+        if template_dir is None:
+            template_dir = get_template_dir()
+        
         self.automation = GUIAutomation(delay=0.5)
         self.capture = ScreenCapture(target_window=target_window)
         self.matcher = ImageMatcher(confidence=0.7)  # 템플릿 매칭 신뢰도
         self.template_dir = template_dir
+        
+        # 사용 중인 템플릿 디렉토리 출력
+        print(f"템플릿 디렉토리: {self.template_dir} (OS: {platform.system()})")
 
         # UI 요소 위치 캐시
         self.ui_cache = {}
@@ -88,32 +115,54 @@ class SearchAutomationService:
             }
         """
         try:            
-            input_field = self.find_ui_element('input_field')
+            print(f"\n[검색 시작] 주민등록번호: {resident_number}")
             
-            self.automation.click(
+            # 1. 입력 필드 찾기
+            input_field = self.find_ui_element('input_field')
+            print(f"[1단계] 입력 필드 찾기 완료: ({input_field['center_x']}, {input_field['center_y']})")
+            
+            # 2. 입력 필드 클릭 (더블 클릭으로 선택 영역 확보)
+            print("[2단계] 입력 필드 더블 클릭...")
+            self.automation.double_click(
                 input_field['center_x'],
                 input_field['center_y']
             )
-            time.sleep(0.1)
+            time.sleep(0.5)  # 포커스 대기 시간 증가
 
-            pyautogui.hotkey('ctrl','a')
+            # 3. 기존 내용 삭제
+            print("[3단계] 기존 내용 삭제...")
+            import platform
+            if platform.system() == 'Darwin':  # macOS
+                pyautogui.hotkey('command', 'a')
+            else:  # Windows/Linux
+                pyautogui.hotkey('ctrl', 'a')
+            time.sleep(0.3)
+
             pyautogui.press('delete')
-            time.sleep(0.1)
+            time.sleep(0.3)
 
-            # 주민등록번호 입력 (타이핑 방식)
-            pyautogui.write(resident_number, interval=0.01)
-            time.sleep(0.1)
+            # 4. 주민등록번호 입력
+            print(f"[4단계] 주민등록번호 입력: {resident_number}")
+            self.automation.paste_text(resident_number, delay=0.3)
+            time.sleep(0.5)  # 입력 완료 대기
+            print("[4단계] 주민등록번호 입력 완료")
 
-            # 검색 버튼 찾기
+            # 5. 검색 버튼 찾기
+            print("[5단계] 검색 버튼 찾기...")
             search_button = self.find_ui_element('search_button')
+            print(f"[5단계] 검색 버튼 찾기 완료: ({search_button['center_x']}, {search_button['center_y']})")
             
-            # 검색 버튼 클릭
+            # 6. 검색 버튼 클릭
+            print("[6단계] 검색 버튼 클릭...")
             self.automation.click(
                 search_button['center_x'],
                 search_button['center_y']
             )
+            print("[6단계] 검색 버튼 클릭 완료")
             
-            time.sleep(0.1)
+            # 7. 결과 로딩 대기
+            print("[7단계] 검색 결과 대기 중...")
+            time.sleep(2.0)  # 결과 로딩 대기 (2초)
 
             # 결과 영역 캡처
             result_screenshot = self.capture.capture_full_screen()

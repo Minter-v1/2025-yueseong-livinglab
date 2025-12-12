@@ -47,7 +47,7 @@ class ExcelService:
         Args:
             file_path: 출력 파일 경로
             results: 결과 리스트 [
-                {'순번': 1, '주민등록번호': '...', '세대원수': 4, '상태': '완료'},
+                {'순번': 1, '주민등록번호': '...', '이름': '...', '세대원 수': 4, '상태': '완료', '메시지': '...'},
                 ...
             ]
         """
@@ -59,7 +59,7 @@ class ExcelService:
         # Excel 저장
         excel_path = base_path + '.xlsx'
         df.to_excel(excel_path, index=False, engine='openpyxl')
-        print("Excel 저장: {excel_path}")
+        print(f"Excel 저장: {excel_path}")
     
     @staticmethod
     def append_column(file_path, column_name, values, output_path=None):
@@ -104,4 +104,3 @@ if __name__ == "__main__":
         print(f"Read {len(records)} records from {test_file}")
         for record in records[:3]:
             print(f"  - {record}")
-
