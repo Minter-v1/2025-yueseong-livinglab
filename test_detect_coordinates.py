@@ -57,7 +57,14 @@ def detect_and_visualize(image_path, template_dir='data/templates/templates_real
 
     # 3. 템플릿 매칭
     print('[3단계] UI 요소 검색 중...')
-    matcher = ImageMatcher(confidence=0.5)
+    matcher = ImageMatcher(
+        confidence=0.55,
+        search_scales=[0.6, 0.75, 0.9, 1.0, 1.1, 1.25, 1.4, 1.6, 1.8, 2.0],
+        match_modes=('gray', 'canny', 'color', 'sat'),
+        canny_thresholds=(30, 120),
+        method=(cv2.TM_CCORR_NORMED, cv2.TM_CCOEFF_NORMED),
+        pre_blur=(3, 3)
+    )
     templates = ['input_field_id', 'input_field_name', 'search_button', 'reset_button']
 
     results = {}
@@ -70,7 +77,27 @@ def detect_and_visualize(image_path, template_dir='data/templates/templates_real
             continue
 
         try:
-            match = matcher.find_template(roi_path, template_path)
+            scale_candidates = None
+            # HiDPI 환경을 고려해 보조 배율 목록 구성 (템플릿 크기 변화 허용)
+            template_img = cv2.imread(template_path, cv2.IMREAD_GRAYSCALE)
+            if template_img is not None:
+                template_h, template_w = template_img.shape
+                if template_w > 0 and template_h > 0:
+                    # ROI에 비례한 상대 배율 추정 (너무 넓은 경우를 위한 클램프 추가)
+                    roi_height, roi_width = roi.shape[:2]
+                    width_ratio = roi_width / template_w
+                    height_ratio = roi_height / template_h
+                    estimated = min(max(width_ratio / 4, 0.5), 2.5)
+                    # 중심 배율 주변으로 세분화
+                    base_scales = [estimated * factor for factor in (0.9, 1.0, 1.1)]
+                    # 기본 배율과 병합
+                    scale_candidates = sorted({
+                        round(scale, 2)
+                        for scale in list(matcher.search_scales) + base_scales
+                        if 0.4 <= scale <= 3.0
+                    })
+
+            match = matcher.find_template(roi_path, template_path, scale_search=scale_candidates)
 
             if match:
                 results[template_name] = {
@@ -160,7 +187,8 @@ def detect_and_visualize(image_path, template_dir='data/templates/templates_real
 
 if __name__ == '__main__':
     # 기본 이미지 경로
-    default_image = Path("data/templates/img_org.jpeg")
+    default_image = Path("data/templates/img_org.png")
+
 
     # 명령행 인자로 이미지 경로 받기
     if len(sys.argv) > 1:
