@@ -10,32 +10,32 @@ import os
 from ..core.automation import GUIAutomation
 from ..core.screen_capture import ScreenCapture
 from ..core.image_matcher import ImageMatcher
+from ..core.dialog_detector import DialogDetector
 
 
 class SearchAutomationService:
     """검색 자동화 서비스"""
-    
+ 
     def __init__(self, template_dir="data/templates", target_window=None):
+
         """
         Args:
             template_dir: UI 템플릿 이미지 디렉토리
             target_window: 타겟 윈도우 이름 (None이면 전체 화면)
+            use_dialog_detector: 대화상자 검출 기능 사용 여부
         """
-        self.automation = GUIAutomation(delay=0.5)
-        self.capture = ScreenCapture(target_window=target_window)
-        self.matcher = ImageMatcher(confidence=0.7)  # 템플릿 매칭 신뢰도
-        self.template_dir = template_dir
-
+      
         # UI 요소 위치 캐시
         self.ui_cache = {}
-    
-    def find_ui_element(self, element_name, screenshot_path=None):
+
+    def find_ui_element(self, element_name, screenshot_path=None, use_dialog_roi=True):
         """
         UI 요소 찾기 (OpenCV 템플릿 매칭)
 
         Args:
             element_name: 요소 이름 ('input_field', 'search_button', etc.)
             screenshot_path: 스크린샷 경로 (None이면 새로 캡처)
+            use_dialog_roi: 대화상자 ROI 내부에서만 검색할지 여부
 
         Returns:
             dict: {'x', 'y', 'width', 'height', 'center_x', 'center_y'}
@@ -51,13 +51,38 @@ class SearchAutomationService:
             screenshot_path = self.capture.capture_full_screen()
             print(f"Screenshot saved: {screenshot_path}")
 
+        # 대화상자 검출 기능 사용
+        if self.dialog_detector and use_dialog_roi:
+            # 대화상자 경계가 캐시되어 있지 않으면 검출
+            if self.dialog_boundary is None:
+                print("\n[대화상자 ROI 기반 검색 모드]")
+                self.dialog_boundary = self.dialog_detector.detect_dialog_boundary(screenshot_path)
+
+            # 대화상자 내부에서 UI 요소 검색
+            if self.dialog_boundary:
+                ui_elements = self.dialog_detector.find_input_fields_in_dialog(
+                    screenshot_path,
+                    self.dialog_boundary,
+                    self.template_dir
+                )
+
+                if element_name in ui_elements:
+                    result = ui_elements[element_name]
+                    normalized, _ = self._normalize_coordinates(result, screenshot_path)
+
+                    # 캐시 저장
+                    self.ui_cache[element_name] = normalized
+                    return normalized
+
+        # 전체 화면 검색 (fallback)
+        print(f"\n[전체 화면 검색 모드]")
+        print(f"Searching for '{element_name}' using template matching...")
+
         # 템플릿 경로
         template_path = os.path.join(self.template_dir, f"{element_name}.png")
 
         if not os.path.exists(template_path):
             raise FileNotFoundError(f"Template not found: {template_path}")
-
-        print(f"Searching for '{element_name}' using template matching...")
 
         # OpenCV 템플릿 매칭
         result = self.matcher.find_template(screenshot_path, template_path)
@@ -243,6 +268,46 @@ class SearchAutomationService:
     def clear_cache(self):
         """UI 위치 캐시 초기화"""
         self.ui_cache.clear()
+        self.dialog_boundary = None
+
+    def get_dialog_boundary(self):
+        """
+        현재 대화상자 경계 정보 반환
+
+        Returns:
+            dict or None: 대화상자 경계 좌표
+        """
+        return self.dialog_boundary
+
+    def print_all_coordinates(self):
+        """
+        검출된 모든 좌표 정보 출력
+        """
+        print(f"\n{'='*60}")
+        print("[좌표 정보 출력]")
+        print(f"{'='*60}\n")
+
+        if self.dialog_boundary:
+            print(" 대화상자 경계:")
+            print(f"  - 왼쪽 상단: ({self.dialog_boundary['x']}, {self.dialog_boundary['y']})")
+            print(f"  - 오른쪽 하단: ({self.dialog_boundary['right']}, {self.dialog_boundary['bottom']})")
+            print(f"  - 중심: ({self.dialog_boundary['center_x']}, {self.dialog_boundary['center_y']})")
+            print(f"  - 크기: {self.dialog_boundary['width']} x {self.dialog_boundary['height']}\n")
+
+        if self.ui_cache:
+            print(" UI 요소 좌표:")
+            for element_name, coords in self.ui_cache.items():
+                print(f"\n  [{element_name}]")
+                print(f"    - 왼쪽 상단: ({coords['x']}, {coords['y']})")
+                print(f"    - 중심: ({coords['center_x']}, {coords['center_y']})")
+                print(f"    - 크기: {coords['width']} x {coords['height']}")
+                if 'confidence' in coords:
+                    print(f"    - 신뢰도: {coords['confidence']:.2f}")
+
+        if not self.dialog_boundary and not self.ui_cache:
+            print("⚠ 검출된 좌표 정보가 없습니다.")
+
+        print(f"\n{'='*60}\n")
 
 
 if __name__ == "__main__":
