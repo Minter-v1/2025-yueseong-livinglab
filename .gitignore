@@ -66,6 +66,10 @@ config.local.yaml
 .cache/
 models/
 
+# 엑셀 파일
+*.xlsx
+
+
 
 .DS_Store
 Thumbs.db

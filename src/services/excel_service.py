@@ -29,10 +29,34 @@ class ExcelService:
             df = pd.read_csv(file_path, encoding='utf-8')
         else:
             df = pd.read_excel(file_path)
+
+        print(f"[EXCEL] 읽은 컬럼: {list(df.columns)}")
+
+        # 컬럼 이름 공백/BOM 제거
+        def _clean_column(name):
+            if isinstance(name, str):
+                return name.replace('\ufeff', '').strip()
+            return name
+
+        df.rename(columns=_clean_column, inplace=True)
+        column_name = _clean_column(column_name)
         
         # 주민등록번호 컬럼 확인
         if column_name not in df.columns:
             raise ValueError(f"Column '{column_name}' not found in file")
+
+        # 주민등록번호 문자열화 (NaN/공백 처리)
+        def _normalize_id(value):
+            if value is None:
+                return ''
+            if pd.isna(value):
+                return ''
+            return str(value).strip()
+
+        df[column_name] = df[column_name].apply(_normalize_id)
+
+        preview = df.head(3).to_dict('records')
+        print(f"[EXCEL] 데이터 샘플 3건: {preview}")
         
         # 딕셔너리 리스트로 변환
         records = df.to_dict('records')

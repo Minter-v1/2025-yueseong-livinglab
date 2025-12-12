@@ -388,8 +388,31 @@ class MainWindow:
                     self.log("사용자가 중지했습니다.")
                     break
 
-                resident_number = record.get('주민등록번호', '')
-                name = record.get('이름', '')
+                raw_resident_number = record.get('주민등록번호', '')
+                raw_name = record.get('이름', '')
+                name = '' if raw_name is None else str(raw_name).strip()
+
+                self.log(
+                    f"  - CSV 값 확인: 주민등록번호(raw)={repr(raw_resident_number)}, 이름(raw)={repr(raw_name)}"
+                )
+
+                resident_number = '' if raw_resident_number is None else str(raw_resident_number).strip()
+                if resident_number.lower() == 'nan':
+                    resident_number = ''
+
+                if not resident_number:
+                    self.log("  - 주민등록번호가 비어 있어 건너뜁니다.")
+                    results.append({
+                        '순번': record.get('순번', i),
+                        '주민등록번호': '',
+                        '이름': name,
+                        '세대원 수': 0,
+                        '상태': '오류',
+                        '메시지': '주민등록번호가 비어 있습니다.'
+                    })
+                    self.update_progress(i, total)
+                    continue
+                name = '' if raw_name is None else str(raw_name).strip()
 
                 self.log(f"\n{'='*60}")
                 self.log(f"[{i}/{total}] {name} ({resident_number})")

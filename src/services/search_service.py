@@ -4,96 +4,30 @@ MARK:
 행복e음 시스템에서 주민등록번호 검색 자동화
 """
 
-import os
-import platform
 import time
-import math
-
 import pyautogui
-from PIL import Image
+import os
 from ..core.automation import GUIAutomation
 from ..core.screen_capture import ScreenCapture
 from ..core.image_matcher import ImageMatcher
 from ..core.dialog_detector import DialogDetector
 
 
-def get_template_dir():
-    """
-    OS를 자동으로 탐지하여 적절한 템플릿 디렉토리 경로 반환
-    
-    Returns:
-        str: OS에 맞는 템플릿 디렉토리 경로
-    """
-    system = platform.system()
-    
-    if system == "Windows":
-        return "data/templates/templates_window"
-    elif system == "Darwin":  # macOS
-        return "data/templates/templates_mac"
-    else:
-        # Linux나 기타 OS의 경우 기본값 사용
-        print(f"경고: 알 수 없는 OS ({system}), 기본 템플릿 디렉토리를 사용합니다.")
-        return "data/templates/templates_window"
-
-
 class SearchAutomationService:
     """검색 자동화 서비스"""
+ 
+    def __init__(self, template_dir="data/templates", target_window=None):
 
-    def __init__(self, template_dir=None, target_window=None, use_dialog_detector=True):
         """
         Args:
-            template_dir: UI 템플릿 이미지 디렉토리 (None이면 OS 자동 탐지)
+            template_dir: UI 템플릿 이미지 디렉토리
             target_window: 타겟 윈도우 이름 (None이면 전체 화면)
             use_dialog_detector: 대화상자 검출 기능 사용 여부
         """
-        # template_dir이 지정되지 않으면 OS에 따라 자동 설정
-        if template_dir is None:
-            template_dir = get_template_dir()
-
-        self.automation = GUIAutomation(delay=0.5)
-        self.capture = ScreenCapture(target_window=target_window)
-        self.matcher = ImageMatcher(confidence=0.7)  # 템플릿 매칭 신뢰도
-        self.dialog_detector = DialogDetector(debug=True) if use_dialog_detector else None
-        self.template_dir = template_dir
-
-        # 사용 중인 템플릿 디렉토리 출력
-        print(f"템플릿 디렉토리: {self.template_dir} (OS: {platform.system()})")
-        print(f"대화상자 검출 기능: {'활성화' if use_dialog_detector else '비활성화'}")
-
+      
         # UI 요소 위치 캐시
         self.ui_cache = {}
 
-        # 대화상자 경계 캐시
-        self.dialog_boundary = None
-
-    def _normalize_coordinates(self, coords, screenshot_path):
-        """Retina/배율 환경에서 템플릿 좌표, 화면 좌표 보정"""
-        screen_w, screen_h = self.capture.get_screen_size()
-        with Image.open(screenshot_path) as shot:
-            img_w, img_h = shot.size
-
-        scale_x = img_w / screen_w if screen_w else 1
-        scale_y = img_h / screen_h if screen_h else 1
-
-        print(
-            "[SCALE] "
-            f"screenshot={img_w}x{img_h}, screen={screen_w}x{screen_h}, "
-            f"scale=({scale_x:.3f}, {scale_y:.3f})"
-        )
-
-        # 배율이 1과 다르면 좌표 보정
-        if not math.isclose(scale_x, 1.0, rel_tol=1e-2) or not math.isclose(scale_y, 1.0, rel_tol=1e-2):
-            adjusted = coords.copy()
-            adjusted['x'] = int(coords['x'] / scale_x)
-            adjusted['y'] = int(coords['y'] / scale_y)
-            adjusted['width'] = int(coords['width'] / scale_x)
-            adjusted['height'] = int(coords['height'] / scale_y)
-            adjusted['center_x'] = int(coords['center_x'] / scale_x)
-            adjusted['center_y'] = int(coords['center_y'] / scale_y)
-            return adjusted, (scale_x, scale_y)
-
-        return coords.copy(), (scale_x, scale_y)
-    
     def find_ui_element(self, element_name, screenshot_path=None, use_dialog_roi=True):
         """
         UI 요소 찾기 (OpenCV 템플릿 매칭)
@@ -156,19 +90,12 @@ class SearchAutomationService:
         if result is None:
             raise ValueError(f"UI element '{element_name}' not found")
 
-        normalized, scale = self._normalize_coordinates(result, screenshot_path)
-        print(
-            f"[MATCH] {element_name} "
-            f"top-left=({normalized['x']}, {normalized['y']}) "
-            f"center=({normalized['center_x']}, {normalized['center_y']}) "
-            f"size={normalized['width']}x{normalized['height']} "
-            f"confidence={normalized['confidence']:.2f}"
-        )
+        print(f"Found '{element_name}' at ({result['center_x']}, {result['center_y']})")
 
         # 캐시 저장
-        self.ui_cache[element_name] = normalized
+        self.ui_cache[element_name] = result
 
-        return normalized
+        return result
     
     def search_resident(self, resident_number):
         """
@@ -186,10 +113,6 @@ class SearchAutomationService:
             }
         """
         try:            
-            resident_number = '' if resident_number is None else str(resident_number).strip()
-            if not resident_number or resident_number.lower() == 'nan':
-                raise ValueError("주민등록번호가 비어 있습니다.")
-
             input_field = self.find_ui_element('input_field')
             
             self.automation.click(
@@ -197,16 +120,15 @@ class SearchAutomationService:
                 input_field['center_y']
             )
             time.sleep(0.1)
-            select_modifier = 'command' if platform.system() == 'Darwin' else 'ctrl'
-            pyautogui.hotkey(select_modifier, 'a')
+
+            pyautogui.hotkey('ctrl','a')
             pyautogui.press('delete')
-            
             time.sleep(0.1)
+
             # 주민등록번호 입력 (타이핑 방식)
-            print(f"[INPUT] 주민등록번호 입력 시도: {resident_number}")
             pyautogui.write(resident_number, interval=0.01)
-            print("[INPUT] 입력 완료")
             time.sleep(0.1)
+
             # 검색 버튼 찾기
             search_button = self.find_ui_element('search_button')
             
@@ -217,8 +139,10 @@ class SearchAutomationService:
             )
             
             time.sleep(0.1)
+
             # 결과 영역 캡처
             result_screenshot = self.capture.capture_full_screen()
+
             # 세대원 수 추출 (이미지 매칭 방식)
             print("Counting checkboxes with image matching...")
             household_count = self._count_checkboxes_by_image(result_screenshot)
@@ -390,3 +314,4 @@ if __name__ == "__main__":
     # 테스트
     service = SearchAutomationService()
     print("Search Automation Service initialized")
+
