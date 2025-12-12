@@ -59,6 +59,22 @@ class SearchAutomationService:
         # UI 요소 위치 캐시
         self.ui_cache = {}
 
+    @staticmethod
+    def _release_modifier_keys():
+        """특정 환경에서 남아있을 수 있는 modifier 키를 강제로 해제"""
+        stuck_keys = (
+            'command', 'commandleft', 'commandright',
+            'ctrl', 'ctrlleft', 'ctrlright',
+            'alt', 'option', 'altleft', 'altright',
+            'shift', 'shiftleft', 'shiftright'
+        )
+        for key in stuck_keys:
+            try:
+                pyautogui.keyUp(key)
+            except Exception:
+                # 일부 키는 현재 OS에서 지원되지 않을 수 있으므로 무시
+                continue
+
     def _normalize_coordinates(self, coords, screenshot_path):
         """Retina/배율 환경에서 템플릿 좌표, 화면 좌표 보정"""
         screen_w, screen_h = self.capture.get_screen_size()
@@ -165,13 +181,18 @@ class SearchAutomationService:
             )
             time.sleep(0.1)
             select_modifier = 'command' if platform.system() == 'Darwin' else 'ctrl'
+            # 혹시 남아있는 modifier가 있으면 입력 전에 해제
+            self._release_modifier_keys()
             pyautogui.hotkey(select_modifier, 'a')
-            pyautogui.press('delete')
-            
+            # macOS에서 Command가 간헐적으로 해제되지 않는 문제 대응
+            self._release_modifier_keys()
+            pyautogui.press('backspace')
             time.sleep(0.1)
             # 주민등록번호 입력 (타이핑 방식)
             print(f"[INPUT] 주민등록번호 입력 시도: {resident_number}")
+            self._release_modifier_keys()
             pyautogui.write(resident_number, interval=0.01)
+            self._release_modifier_keys()
             print("[INPUT] 입력 완료")
             time.sleep(0.1)
             # 검색 버튼 찾기
