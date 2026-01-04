@@ -1,6 +1,5 @@
 """
 MARK: 팝업 대화상자 경계 검출 모듈
-명암 차이를 이용한 직선 검출로 대화상자 영역 추출
 """
 
 import cv2
@@ -42,9 +41,7 @@ class DialogDetector:
                 'bottom': 아래쪽 y 좌표
             }
         """
-        print(f"\n{'='*60}")
-        print("[대화상자 경계 검출 시작]")
-        print(f"{'='*60}")
+        print("\n대화상자 경계 검출 시작")
 
         # 이미지 로드
         image = cv2.imread(screenshot_path)
@@ -56,20 +53,20 @@ class DialogDetector:
         # 그레이스케일 변환
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-        # 1. 명암 기반 이진화 (어두운 영역 vs 밝은 영역)
+        # 명암 기반 이진화 (어두운 영역 vs 밝은 영역)
         # 밝은 영역(팝업창)을 찾기 위해 Otsu 이진화 사용
         _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
         print(f"Otsu 임계값 적용 완료")
 
-        # 2. 모폴로지 연산으로 노이즈 제거
+        # 모폴로지 연산으로 노이즈 제거
         kernel = np.ones((5, 5), np.uint8)
         binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
         binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
 
         print("모폴로지 연산 완료 (노이즈 제거)")
 
-        # 3. 윤곽선 검출
+        # 윤곽선 검출
         contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         print(f"검출된 윤곽선 개수: {len(contours)}")
@@ -78,7 +75,7 @@ class DialogDetector:
             print("경고: 윤곽선을 찾을 수 없습니다.")
             return None
 
-        # 4. 가장 큰 사각형 영역 찾기 (팝업창으로 추정)
+        # 사각형 영역 찾기 (팝업창 추정)
         # 단, 전체 화면 크기에 가까운 것은 제외 (배경일 가능성)
         img_area = image.shape[0] * image.shape[1]
         max_valid_area = img_area * 0.8  # 전체 화면의 80% 이상은 제외
@@ -90,19 +87,19 @@ class DialogDetector:
             if min_valid_area < area < max_valid_area:
                 valid_contours.append(contour)
 
-        print(f"유효한 윤곽선 개수: {len(valid_contours)} (면적 기준)")
+        print(f"윤곽선 개수: {len(valid_contours)} (면적 기준)")
 
         if len(valid_contours) == 0:
             print("경고: 유효한 대화상자를 찾을 수 없습니다.")
             return None
 
-        # 가장 큰 유효 윤곽선 선택
+        # 윤곽선 선택
         largest_contour = max(valid_contours, key=cv2.contourArea)
 
-        # 5. 바운딩 박스 추출
+        # 바운딩 박스 추출
         x, y, w, h = cv2.boundingRect(largest_contour)
 
-        # 6. 결과 좌표 계산
+        # 결과 좌표 계산
         result = {
             'x': x,
             'y': y,
@@ -115,17 +112,15 @@ class DialogDetector:
         }
 
         # 좌표 정보 출력
-        print(f"\n{'='*60}")
-        print("[검출된 대화상자 좌표]")
-        print(f"{'='*60}")
+        # 좌표 정보 출력
+        print("\n[검출된 대화상자 좌표]")
         print(f"왼쪽 상단: ({result['x']}, {result['y']})")
         print(f"오른쪽 하단: ({result['right']}, {result['bottom']})")
         print(f"중심 좌표: ({result['center_x']}, {result['center_y']})")
         print(f"크기: {result['width']} x {result['height']}")
         print(f"면적: {w * h:,} 픽셀 (전체의 {(w * h / img_area * 100):.1f}%)")
-        print(f"{'='*60}\n")
 
-        # 7. 디버그 이미지 저장
+        # 디버그 이미지 저장
         if self.debug or output_debug_path:
             debug_image = image.copy()
 
@@ -174,9 +169,7 @@ class DialogDetector:
         import os
         from .image_matcher import ImageMatcher
 
-        print(f"\n{'='*60}")
-        print("[대화상자 내부 UI 요소 검색]")
-        print(f"{'='*60}")
+        print("\n[대화상자 내부 UI 요소 검색]")
         print(f"검색 영역: ({dialog_boundary['x']}, {dialog_boundary['y']}) ~ "
               f"({dialog_boundary['right']}, {dialog_boundary['bottom']})")
 
@@ -230,16 +223,16 @@ class DialogDetector:
 
                     results[element_name] = absolute_coords
 
-                    print(f"✓ {element_name} 발견!")
+                    print(f"{element_name} 발견")
                     print(f"  - 전체 화면 좌표: ({absolute_coords['x']}, {absolute_coords['y']})")
                     print(f"  - 중심점: ({absolute_coords['center_x']}, {absolute_coords['center_y']})")
                     print(f"  - 크기: {absolute_coords['width']}x{absolute_coords['height']}")
                     print(f"  - 신뢰도: {absolute_coords['confidence']:.2f}")
                 else:
-                    print(f"✗ {element_name} 찾지 못함")
+                    print(f"{element_name} 찾지 못함")
 
             except Exception as e:
-                print(f"✗ {element_name} 검색 실패: {e}")
+                print(f"{element_name} 검색 실패: {e}")
 
         # 임시 파일 삭제
         try:
@@ -247,9 +240,7 @@ class DialogDetector:
         except:
             pass
 
-        print(f"\n{'='*60}")
-        print(f"검색 완료: {len(results)}개 요소 발견")
-        print(f"{'='*60}\n")
+        print(f"\n검색 완료: {len(results)}개 요소 발견")
 
         return results
 
@@ -264,9 +255,7 @@ class DialogDetector:
         Returns:
             dict or None: 경계 좌표 정보
         """
-        print(f"\n{'='*60}")
-        print("[Hough 직선 검출 방식]")
-        print(f"{'='*60}")
+        print("\n[Hough 직선 검출 방식]")
 
         # 이미지 로드
         image = cv2.imread(screenshot_path)
@@ -329,14 +318,11 @@ class DialogDetector:
         }
 
         # 좌표 정보 출력
-        print(f"\n{'='*60}")
-        print("[Hough 변환 검출 결과]")
-        print(f"{'='*60}")
+        print("\n[Hough 변환 검출 결과]")
         print(f"왼쪽 상단: ({result['x']}, {result['y']})")
         print(f"오른쪽 하단: ({result['right']}, {result['bottom']})")
         print(f"중심 좌표: ({result['center_x']}, {result['center_y']})")
         print(f"크기: {result['width']} x {result['height']}")
-        print(f"{'='*60}\n")
 
         # 디버그 이미지 저장
         if self.debug or output_debug_path:

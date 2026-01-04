@@ -10,12 +10,8 @@ from src.ui.main_window import MainWindow
 
 def main():
     """메인 함수"""
-    print("=" * 60)
     print("행복e음 자동화 프로그램")
-    print("=" * 60)
-    print("버전: 1.0.0")
     print("개발: 2025 by ys-ongyeol")
-    print("=" * 60)
     
     # GUI 실행
     root = tk.Tk()

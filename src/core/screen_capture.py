@@ -51,7 +51,7 @@ class ScreenCapture:
     
     def capture_region(self, x, y, width, height, save_path=None):
         """
-        특정 영역 캡처
+        영역 캡처
         
         Args:
             x, y: 시작 좌표
@@ -72,7 +72,7 @@ class ScreenCapture:
     
     def capture_window(self, window_title=None, save_path=None):
         """
-        특정 윈도우 캡처 (macOS/Windows 호환)
+        윈도우 캡처 (macOS/Windows 호환)
         
         Args:
             window_title: 윈도우 제목 (None이면 활성 윈도우)
@@ -96,7 +96,7 @@ class ScreenCapture:
 
     def _capture_window_macos(self, window_name, save_path):
         """
-        macOS에서 특정 윈도우 캡처 (AppleScript 사용)
+        macOS 윈도우 캡처 (AppleScript 사용)
 
         Args:
             window_name: 윈도우 이름 (부분 일치)

@@ -88,13 +88,13 @@ class ExcelService:
     @staticmethod
     def append_column(file_path, column_name, values, output_path=None):
         """
-        기존 Excel 파일에 컬럼 추가
+        Excel 파일에 컬럼 추가
         
         Args:
-            file_path: 입력 파일 경로
+            file_path: 파일 경로
             column_name: 추가할 컬럼 이름
             values: 컬럼 값 리스트
-            output_path: 출력 파일 경로 (None이면 원본 덮어쓰기)
+            output_path: 파일 경로 (None이면 덮어쓰기)
         """
         # 파일 읽기
         if file_path.endswith('.csv'):

@@ -228,7 +228,7 @@ class MainWindow:
                 self.log(f"출력 파일 자동 설정: {output_path}")
     
     def browse_output_file(self):
-        """출력 파일 선택 (저장 위치 및 파일명 지정)"""
+        """출력 파일 선택"""
         # 현재 입력된 경로가 있으면 기본값으로 사용
         current_path = self.output_file_path.get()
         if current_path and os.path.dirname(current_path):
@@ -346,13 +346,11 @@ class MainWindow:
         self.stop_button.config(state=tk.DISABLED)
     
     def run_automation(self):
-        """자동화 실행 (별도 스레드)"""
+        """자동화 실행 (스레드)"""
         try:
-            self.log("=" * 60)
             self.log("자동화 시작")
-            self.log("=" * 60)
 
-            # 1. Excel 파일 읽기
+            # Excel 파일 읽기
             from ..services.excel_service import ExcelService
             excel_service = ExcelService()
 
@@ -361,7 +359,7 @@ class MainWindow:
 
             self.log(f"총 {len(records)}건 로드됨")
 
-            # 2. 검색 자동화 서비스 초기화 (템플릿 매칭 모드)
+            # 검색 자동화 서비스 초기화 (템플릿 매칭 모드)
             from ..services.search_service import SearchAutomationService
             search_service = SearchAutomationService()
 
@@ -378,7 +376,7 @@ class MainWindow:
 
             self.log("")
 
-            # 3. 각 주민등록번호 검색
+            # 각 주민등록번호 검색
             results = []
             total = len(records)
 
@@ -414,14 +412,12 @@ class MainWindow:
                     continue
                 name = '' if raw_name is None else str(raw_name).strip()
 
-                self.log(f"\n{'='*60}")
-                self.log(f"[{i}/{total}] {name} ({resident_number})")
-                self.log(f"{'='*60}")
+                self.log(f"\n[{i}/{total}] {name} ({resident_number})")
 
                 # 검색 실행 (이미지 매칭 사용)
                 result = search_service.search_resident(resident_number)
 
-                # 결과 기록 (정확한 컬럼 형식: 순번, 주민등록번호, 이름, 세대원 수, 상태, 메시지)
+                # 결과 기록 (순번, 주민등록번호, 이름, 세대원 수, 상태, 메시지)
                 output_record = {
                     '순번': record.get('순번', i),
                     '주민등록번호': resident_number,
@@ -444,21 +440,19 @@ class MainWindow:
                 if i < total:
                     time.sleep(1)
 
-            # 4. 결과 저장
+            # 결과 저장
             self.log("")
-            self.log("=" * 60)
             self.log("결과 저장 중...")
 
             excel_service.write_results(self.output_file_path.get(), results)
 
-            # 실제 저장된 파일 경로
+            # 파일 경로
             base_path = os.path.splitext(self.output_file_path.get())[0]
             excel_path = base_path + '.xlsx'
 
             self.log(f"Excel 저장 완료: {excel_path}")
-            self.log("=" * 60)
+            self.log(f"Excel 저장 완료: {excel_path}")
             self.log(f"전체 작업 완료: (총 {len(results)}건 처리)")
-            self.log("=" * 60)
 
             # 완료 메시지
             messagebox.showinfo(

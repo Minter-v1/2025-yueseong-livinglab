@@ -259,7 +259,7 @@ class ImageMatcher:
                         confidence = max_val
 
                     if not np.isfinite(confidence):
-                        print("     ⚠ 비정상적인 신뢰도(inf/nan) 결과 - 마스크를 제거하고 재시도합니다.")
+                        print("     신뢰도(inf/nan) 결과 - 마스크를 제거하고 재시도합니다.")
                         if mask_arg is not None:
                             # 마스크를 제거하고 한 번만 다시 시도
                             result = cv2.matchTemplate(
@@ -462,7 +462,7 @@ class ImageMatcher:
 
         if best_candidate:
             print(
-                f"     색상 기반 후보 발견: "
+                f"     후보 발견: "
                 f"({best_candidate['x']}, {best_candidate['y']}) "
                 f"size={best_candidate['width']}x{best_candidate['height']} "
                 f"conf={best_candidate['confidence']:.2f}"

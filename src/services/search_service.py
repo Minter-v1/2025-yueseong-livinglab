@@ -19,7 +19,7 @@ from ..core.dialog_detector import DialogDetector
 
 def get_template_dir():
     """
-    OS를 자동으로 탐지하여 적절한 템플릿 디렉토리 경로 반환
+    OS를 탐지하여 템플릿 디렉토리 경로 반환
     
     Returns:
         str: OS에 맞는 템플릿 디렉토리 경로
@@ -67,7 +67,7 @@ class SearchAutomationService:
 
     @staticmethod
     def _release_modifier_keys():
-        """특정 환경에서 남아있을 수 있는 modifier 키를 강제로 해제"""
+        """특정 환경에서 남아있을 수 있는 modifier 키를 해제"""
         stuck_keys = (
             'command', 'commandleft', 'commandright',
             'ctrl', 'ctrlleft', 'ctrlright',
@@ -346,9 +346,7 @@ class SearchAutomationService:
         total = len(resident_numbers)
         
         for i, resident_number in enumerate(resident_numbers, 1):
-            print(f"\n{'='*60}")
-            print(f"Progress: {i}/{total}")
-            print(f"{'='*60}")
+            print(f"\nProgress: {i}/{total}")
             
             result = self.search_resident(resident_number)
             results.append(result)
@@ -378,11 +376,9 @@ class SearchAutomationService:
 
     def print_all_coordinates(self):
         """
-        검출된 모든 좌표 정보 출력
+        검출된 좌표 정보 출력
         """
-        print(f"\n{'='*60}")
-        print("[좌표 정보 출력]")
-        print(f"{'='*60}\n")
+        print("\n[좌표 정보 출력]")
 
         if self.dialog_boundary:
             print(" 대화상자 경계:")
@@ -402,9 +398,9 @@ class SearchAutomationService:
                     print(f"    - 신뢰도: {coords['confidence']:.2f}")
 
         if not self.dialog_boundary and not self.ui_cache:
-            print("⚠ 검출된 좌표 정보가 없습니다.")
+            print("검출된 좌표 정보가 없습니다.")
 
-        print(f"\n{'='*60}\n")
+
 
 
 if __name__ == "__main__":

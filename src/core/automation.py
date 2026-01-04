@@ -22,7 +22,7 @@ class GUIAutomation:
     
     def click(self, x, y, clicks=1, button='left', delay=None):
         """
-        특정 위치 클릭
+        위치 클릭
         
         Args:
             x, y: 클릭 좌표
@@ -131,7 +131,7 @@ class GUIAutomation:
     
     def screenshot_region(self, x, y, width, height):
         """
-        특정 영역 스크린샷
+        영역 스크린샷
         
         Args:
             x, y: 시작 좌표

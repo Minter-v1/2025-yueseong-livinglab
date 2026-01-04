@@ -20,7 +20,7 @@ from src.core.image_matcher import ImageMatcher
 
 def detect_and_visualize(image_path, template_dir='data/templates/templates_real', output_dir=None):
     """
-    이미지에서 좌표를 검출하고 결과 이미지를 생성
+    이미지 좌표 검출 및 결과 이미지 생성
     """
     # 출력 디렉토리 설정
     if output_dir is None:
@@ -68,14 +68,14 @@ def detect_and_visualize(image_path, template_dir='data/templates/templates_real
             continue
 
         try:
-            # 체크박스는 여러 개를 찾아야 하므로 별도 로직 처리
+            # 체크박스 처리 (다중 검출)
             if template_name == 'checkbox':
                 tpl_img_orig = cv2.imread(template_path, cv2.IMREAD_GRAYSCALE)
                 
                 if tpl_img_orig is None:
                     continue
 
-                # 최적의 스케일 찾기 (0.8배 ~ 1.2배 사이 탐색)
+                # 최적 스케일 탐색 (0.8 ~ 1.2배)
                 best_score = -1
                 best_scale = 1.0
                 best_tpl = tpl_img_orig
@@ -110,7 +110,7 @@ def detect_and_visualize(image_path, template_dir='data/templates/templates_real
                 if best_score < threshold:
                     continue
 
-                # 최적화된 템플릿으로 전체 다중 검출 시작
+                # 최적화된 템플릿으로 다중 검출 시작
                 th, tw = best_tpl.shape
                 res = cv2.matchTemplate(roi_gray, best_tpl, cv2.TM_CCOEFF_NORMED)
                 
@@ -156,7 +156,7 @@ def detect_and_visualize(image_path, template_dir='data/templates/templates_real
                 
                 continue
 
-            # 일반 UI 요소 (단일 검출) - 기존 로직 유지
+            # UI 요소 (단일 검출)
             scale_candidates = None
             template_img = cv2.imread(template_path, cv2.IMREAD_GRAYSCALE)
             
@@ -211,7 +211,6 @@ def detect_and_visualize(image_path, template_dir='data/templates/templates_real
         color = (0, 0, 255) # 기본: 빨강
         thickness = 2
         
-        # 체크박스는 색상을 다르게 표시 (노랑)
         if 'checkbox' in name:
             color = (0, 255, 255)
         
@@ -224,14 +223,13 @@ def detect_and_visualize(image_path, template_dir='data/templates/templates_real
         # 중심점
         cv2.circle(result_img, (coords['center_x'], coords['center_y']), 4, (255, 0, 0), -1)
 
-        # 라벨 (체크박스가 아니거나, 체크박스인 경우 간소화)
-        if 'checkbox' not in name:
+        # 라벨 표시
             label = f"{name}"
             cv2.putText(result_img, label,
                         (coords['x'], coords['y'] - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
-    # 결과 요약 텍스트 이미지 좌상단에 표시
+    # 결과 요약 표시
     checkbox_items = [k for k in results.keys() if 'checkbox' in k]
     if checkbox_items:
         total = len(checkbox_items)
@@ -244,7 +242,7 @@ def detect_and_visualize(image_path, template_dir='data/templates/templates_real
     # 결과 이미지 저장
     cv2.imwrite(output_path, result_img)
 
-    # 좌표 출력 (최종 결과만 출력)
+    # 좌표 출력
     print('검출된 좌표 정보')
     
     # 체크박스 결과 요약 출력
