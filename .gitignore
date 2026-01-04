@@ -64,7 +64,6 @@ config.local.yaml
 
 # 모델 캐시
 .cache/
-models/
 
 # 엑셀 파일
 *.xlsx

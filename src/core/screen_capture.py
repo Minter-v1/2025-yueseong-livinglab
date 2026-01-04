@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-화면 캡처 모듈
+TITLE: 화면 캡처 모듈
 """
 
 import pyautogui

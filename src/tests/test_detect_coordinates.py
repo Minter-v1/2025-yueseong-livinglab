@@ -6,7 +6,7 @@
 import sys
 import cv2
 import os
-import numpy as np  # numpy 추가
+import numpy as np
 from pathlib import Path
 
 from src.core.dialog_detector import DialogDetector
@@ -17,47 +17,32 @@ def detect_and_visualize(image_path, template_dir='data/templates/templates_real
     """
     이미지에서 좌표를 검출하고 결과 이미지를 생성
     """
-
-    print('=' * 80)
-    print('대화상자 및 UI 요소 좌표 검출 테스트')
-    print('=' * 80)
-    print(f'\n입력 이미지: {image_path}')
-    print(f'템플릿 폴더: {template_dir}\n')
-
     # 출력 디렉토리 설정
     if output_dir is None:
         output_dir = os.path.dirname(image_path)
 
     output_path = os.path.join(output_dir, 'result_coordinates.png')
 
-    # 1. 대화상자 경계 검출
-    print('[1단계] 대화상자 경계 검출 중...')
+    # 대화상자 경계 검출
     detector = DialogDetector(debug=False)
     boundary = detector.detect_dialog_boundary(image_path)
 
     if not boundary:
-        print('❌ 대화상자 경계를 찾을 수 없습니다.')
+        # 경계 검출 실패 시에만 에러 출력
+        print('대화상자 경계를 찾을 수 없습니다.')
         return
 
-    print(f'\n✅ 대화상자 경계 검출 완료!')
-    print(f'   X: {boundary["x"]} ~ {boundary["right"]}')
-    print(f'   Y: {boundary["y"]} ~ {boundary["bottom"]}')
-    print(f'   크기: {boundary["width"]} x {boundary["height"]}\n')
-
-    # 2. ROI 추출
-    print('[2단계] 대화상자 영역 추출 중...')
+    # ROI 추출
     img = cv2.imread(image_path)
     roi = img[boundary['y']:boundary['bottom'], boundary['x']:boundary['right']]
     
-    # 그레이스케일 변환 (매칭 정확도 향상용)
+    # 그레이스케일 변환
     roi_gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
     
     roi_path = 'temp_roi.png'
     cv2.imwrite(roi_path, roi)
-    print('✅ 영역 추출 완료\n')
 
-    # 3. 템플릿 매칭
-    print('[3단계] UI 요소 검색 중...')
+    # 템플릿 매칭
     matcher = ImageMatcher(
         confidence=0.55,
         search_scales=[0.6, 0.75, 0.9, 1.0, 1.1, 1.25, 1.4, 1.6, 1.8, 2.0],
@@ -75,27 +60,22 @@ def detect_and_visualize(image_path, template_dir='data/templates/templates_real
         template_path = os.path.join(template_dir, f'{template_name}.png')
 
         if not os.path.exists(template_path):
-            print(f'  ⚠ {template_name}: 템플릿 파일 없음')
             continue
 
         try:
-            # ----------------------------------------------------------------
-            # [수정] 체크박스는 여러 개를 찾아야 하므로 별도 로직 처리
-            # ----------------------------------------------------------------
+            # 체크박스는 여러 개를 찾아야 하므로 별도 로직 처리
             if template_name == 'checkbox':
-                print(f'  🔎 {template_name}: 최적 스케일 탐색 및 다중 검출 시작...')
                 tpl_img_orig = cv2.imread(template_path, cv2.IMREAD_GRAYSCALE)
                 
                 if tpl_img_orig is None:
-                    print(f'  ⚠️ 오류: {template_name}.png 파일을 읽을 수 없습니다.')
                     continue
 
-                # 1. 최적의 스케일 찾기 (0.8배 ~ 1.2배 사이 탐색)
+                # 최적의 스케일 찾기 (0.8배 ~ 1.2배 사이 탐색)
                 best_score = -1
                 best_scale = 1.0
                 best_tpl = tpl_img_orig
 
-                # 탐색할 배율 범위 설정 (필요하면 0.5 ~ 2.0 등으로 넓히세요)
+                # 탐색할 배율 범위 설정
                 scales = [0.8, 0.85, 0.9, 0.95, 1.0, 1.05, 1.1, 1.15, 1.2]
                 
                 for scale in scales:
@@ -119,16 +99,13 @@ def detect_and_visualize(image_path, template_dir='data/templates/templates_real
                         best_scale = scale
                         best_tpl = resized_tpl
 
-                print(f'    👉 최적 스케일: {best_scale:.2f} (최고 점수: {best_score:.2f})')
-
-                # 2. 임계값 설정 (검출이 안 되면 이 값을 0.55 정도로 더 낮추세요)
+                # 임계값 설정
                 threshold = 0.60  
                 
                 if best_score < threshold:
-                    print(f'    ⚠️ 경고: 유사도가 너무 낮습니다 ({best_score:.2f} < {threshold}). 템플릿 이미지를 다시 캡처해보세요.')
                     continue
 
-                # 3. 최적화된 템플릿으로 전체 다중 검출 시작
+                # 최적화된 템플릿으로 전체 다중 검출 시작
                 th, tw = best_tpl.shape
                 res = cv2.matchTemplate(roi_gray, best_tpl, cv2.TM_CCOEFF_NORMED)
                 
@@ -167,9 +144,6 @@ def detect_and_visualize(image_path, template_dir='data/templates/templates_real
 
                 # 정렬 및 결과 저장
                 found_checkboxes.sort(key=lambda k: k['y'])
-                total_cnt = len(found_checkboxes)
-
-                print(f'  ✓ {template_name}: {total_cnt}개 발견')
                 
                 for idx, box in enumerate(found_checkboxes):
                     key = f"{template_name}_{idx}"
@@ -177,9 +151,7 @@ def detect_and_visualize(image_path, template_dir='data/templates/templates_real
                 
                 continue
 
-            # ----------------------------------------------------------------
             # 일반 UI 요소 (단일 검출) - 기존 로직 유지
-            # ----------------------------------------------------------------
             scale_candidates = None
             template_img = cv2.imread(template_path, cv2.IMREAD_GRAYSCALE)
             
@@ -208,21 +180,16 @@ def detect_and_visualize(image_path, template_dir='data/templates/templates_real
                     'height': match['height'],
                     'confidence': match['confidence']
                 }
-                print(f'  ✓ {template_name}: 검출 (신뢰도 {match["confidence"]:.1%})')
-            else:
-                print(f'  ✗ {template_name}: 찾지 못함')
 
         except Exception as e:
-            print(f'  ✗ {template_name}: 오류 - {e}')
+            # 에러 발생 시에만 출력
+            print(f'{template_name}: 오류 - {e}')
 
     # 임시 파일 삭제
     if os.path.exists(roi_path):
         os.remove(roi_path)
 
-    print(f'\n✅ {len(results)}개 UI 요소 검출 완료\n')
-
-    # 4. 결과 이미지 생성
-    print('[4단계] 결과 이미지 생성 중...')
+    # 결과 이미지 생성
     result_img = img.copy()
 
     # 대화상자 경계 표시
@@ -235,8 +202,6 @@ def detect_and_visualize(image_path, template_dir='data/templates/templates_real
                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
     # UI 요소 표시
-    checkbox_count = 0
-    
     for name, coords in results.items():
         color = (0, 0, 255) # 기본: 빨강
         thickness = 2
@@ -273,33 +238,27 @@ def detect_and_visualize(image_path, template_dir='data/templates/templates_real
 
     # 결과 이미지 저장
     cv2.imwrite(output_path, result_img)
-    print(f'✅ 결과 이미지 저장: {output_path}\n')
 
-    # 5. 좌표 출력
-    print('=' * 80)
+    # 좌표 출력 (최종 결과만 출력)
     print('검출된 좌표 정보')
-    print('=' * 80)
     
     # 체크박스 결과 요약 출력
     chk_keys = [k for k in results.keys() if 'checkbox' in k]
     if chk_keys:
-        # 정렬된 키 순서대로 (0, 1, 2...)
         chk_keys.sort(key=lambda x: int(x.split('_')[1]))
-        print(f'\n☑️  체크박스 목록 (총 {len(chk_keys)}개)')
+        print(f'체크박스 목록 (총 {len(chk_keys)}개)')
         for key in chk_keys:
             c = results[key]
             print(f"   - {key}: ({c['x']}, {c['y']})")
             
-    print(f'\n📦 대화상자 경계: ({boundary["x"]}, {boundary["y"]})')
+    print(f'대화상자 경계: ({boundary["x"]}, {boundary["y"]})')
 
     if results:
-        print(f'\n🎯 기타 UI 요소:')
+        print(f'기타 UI 요소:')
         for name, coords in results.items():
             if 'checkbox' in name: continue
             print(f'   [{name}]: ({coords["center_x"]}, {coords["center_y"]})')
     
-    print('\n' + '=' * 80)
-    print('✅ 검출 완료!')
 
 
 if __name__ == '__main__':
@@ -311,7 +270,7 @@ if __name__ == '__main__':
         image_path = default_image
 
     if not os.path.exists(image_path):
-        print(f'❌ 파일을 찾을 수 없습니다: {image_path}')
+        print(f'파일을 찾을 수 없습니다: {image_path}')
         sys.exit(1)
 
     detect_and_visualize(image_path)
