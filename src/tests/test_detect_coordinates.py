@@ -3,14 +3,19 @@
 (체크박스 다중 검출 및 개수 카운트 로직 추가)
 """
 
+
 import sys
-import cv2
 import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import cv2
+
 import numpy as np
 from pathlib import Path
 
 from src.core.dialog_detector import DialogDetector
 from src.core.image_matcher import ImageMatcher
+
+
 
 
 def detect_and_visualize(image_path, template_dir='data/templates/templates_real', output_dir=None):
