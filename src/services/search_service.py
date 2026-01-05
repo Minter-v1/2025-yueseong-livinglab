@@ -93,9 +93,15 @@ class SearchAutomationService:
         print(
             "[SCALE] "
             f"screenshot={img_w}x{img_h}, screen={screen_w}x{screen_h}, "
-            f"scale=({scale_x:.3f}, {scale_y:.3f})"
+            f"scale=({scale_x:.3f}, {scale_y:.3f}), OS={platform.system()}"
         )
 
+        # Windows는 스케일링 보정을 하지 않음 (DPI 스케일링 방식이 다름)
+        if platform.system() == "Windows":
+            print("[SCALE] Windows 환경: 좌표 보정 스킵")
+            return coords.copy(), (1.0, 1.0)
+
+        # macOS에서만 Retina 보정 적용
         # 배율이 1과 다르면 좌표 보정
         if not math.isclose(scale_x, 1.0, rel_tol=1e-2) or not math.isclose(scale_y, 1.0, rel_tol=1e-2):
             adjusted = coords.copy()

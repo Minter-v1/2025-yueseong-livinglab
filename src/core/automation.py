@@ -3,6 +3,20 @@
 import pyautogui
 import time
 import pyperclip
+import platform
+
+# Windows DPI 스케일링 문제 해결
+if platform.system() == "Windows":
+    try:
+        import ctypes
+        # DPI awareness 설정 (Windows 8.1 이상)
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE
+    except Exception:
+        try:
+            # Windows Vista/7/8용 fallback
+            ctypes.windll.user32.SetProcessDPIAware()
+        except Exception:
+            pass  # DPI 설정 실패해도 계속 진행
 
 
 class GUIAutomation:
