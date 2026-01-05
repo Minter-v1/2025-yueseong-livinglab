@@ -8,16 +8,16 @@ pillow==12.1.0
 PyAutoGUI==0.9.54
 PyGetWindow==0.0.9
 PyMsgBox==2.0.1
-pyobjc-core==12.1
-pyobjc-framework-Cocoa==12.1
-pyobjc-framework-Quartz==12.1
+pyobjc-core==12.1; sys_platform == 'darwin'
+pyobjc-framework-Cocoa==12.1; sys_platform == 'darwin'
+pyobjc-framework-Quartz==12.1; sys_platform == 'darwin'
 pyperclip==1.11.0
 PyRect==0.2.0
 PyScreeze==1.0.1
 python-dateutil==2.9.0.post0
 pytweening==1.2.0
 pytz==2025.2
-rubicon-objc==0.5.3
+rubicon-objc==0.5.3; sys_platform == 'darwin'
 setuptools==80.9.0
 six==1.17.0
 tzdata==2025.3
